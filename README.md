@@ -23,12 +23,7 @@ La simulazione termina quando si verifica una delle seguenti condizioni:
 I parametri di configurazione sono letti da file o variabili di ambiente, senza necessità di ricompilazione.
 
 ## Installazione
-1. Clonare il repository:
-   ```sh
-   git clone <repository-url>
-   cd <repository-folder>
-   ```
-2. Compilare il progetto utilizzando `make`:
+1. Compilare il progetto utilizzando `make`:
    ```sh
    make
    ```

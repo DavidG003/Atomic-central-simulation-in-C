@@ -10,7 +10,7 @@ Il progetto si compone di diversi processi principali:
 - **Processi Atomo**: si scindono in nuovi processi atomo, generando energia.
 - **Processo Attivatore**: decide quando gli atomi devono scindersi.
 - **Processo Alimentazione**: aggiunge nuovi atomi alla simulazione.
-- **(Versione completa)** **Processo Inibitore**: controlla la reazione assorbendo energia e limitando le scissioni.
+- **Processo Inibitore**: controlla la reazione assorbendo energia e limitando le scissioni.
 
 ## Modalità di Terminazione
 La simulazione termina quando si verifica una delle seguenti condizioni:

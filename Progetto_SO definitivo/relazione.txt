@@ -1,0 +1,70 @@
+Progetto di Sistemi Operativi
+Anno scolastico: 2023/2024
+Autore: Georgiev David
+Mtricola: 1043306
+Mail scolastica:david.georgiev@edu.unito.it
+Mail personale: david4ee@gmail.com
+
+
+Scelte progettuali:
+	Master: Il master puo ricevere 3 tipi di segnali: 
+		-SIGUSR1 per la gestione del meltdown
+		-SIGALRM per la gestione del timeout
+		-SIGINT per interrompere il master nel caso nonsia presente l'inibitore oppure per fermarlo/farlo ripartire nel caso sia presente
+		
+		Inoltre il master:
+		-inizializza tutte gli ipc usati dagli altri processi, prelevando le chiavi da common_file.h e inizializza i valori dei 5 semafori utilizzati. 
+		-richiede se si vuole attivare o meno l'inibitore con un input da tastiera
+		-stampa le statistiche bloccando la loro modifica con 3 semafori, uno per le statistiche modificate rispettivamente in atomo, attivatore e inibitore
+		-rimuove qualsiasi ipc creata utilizzando una funzione (rm_ipcs) la quale ha anche il compito di terminare inibitore, attivatore e alimentazione
+		-attende che i processi figlio abbiano inizializzato i loro parametri con un semaforo wait for zero
+		-stampa ogni secondo utilizzando la system call nanosleep
+		-invia i numeri atomici, generati in modo pseudo-casuale, ai figli atomo utilizzando una coda di messaggi 
+ 		
+	Alimentazione:
+		Il processo alimentazione:
+		-blocca quasi tutti i segnali con la system call sigprocmask
+ 		-imposta il timer di attesa per la generazione di N_NUOVI_ATOMI utilizzando la system call nanosleep
+ 		-invia agli atomi creati il loro numero atomico (generato in modo pseudo-casuale) utilizzando una coda di messaggi
+ 	
+ 	Attivatore:
+ 		Il processo attivatore:
+ 		-Blocca quasi tutti i segnali tranne SIGTERM, il quale verrà utilizzato dal master per terminare l'atttivatore permettendogli di liberare lo heap prima
+ 		-inizializza un array dinamico nello heap per poter salvare i pid degli atomi disponibili per la scissione
+ 		-riceve un unico pid da un atomo per poter inziare la scissione
+ 		-in modo modulare e fino alla sua terminazione, invia attraverso una coda di messaggi il comando di scissione ai figli atomo
+ 		-riceve dai figli atomo, che sono pronti per la scissione, i loro pid attraverso una coda di messaggi 
+ 		 (li riceve senza attendere, nel caso non ci siano messaggi sulla coda può concentrarsi sulla scissione)
+ 		-nel caso in cui l'array dinamico venga occupato del tutto dai pid, realloca l'array e ne aggiunge altre 1000 entry
+ 		-aggiorna il numero di atomi attivati, nella memoria condivisa, ogni volta che invia un messaggio di scissione
+ 		
+ 	Atomo: 
+ 		Il processo atomo:
+ 		-imposta il segnale SIGCHLD con il flag SA_NOCLDWAIT per impedire la creazione di troppi processi zombi nella process table
+ 		-riceve il proprio numero atomico da una coda di messaggi, utilizzando come tipo il proprio pid
+ 		-invia la disponibilità a essere scisso al attivatore con una coda di messaggi diversa dalla prima
+ 		-si mette in attesa su una terza coda di messaggi per essere scisso
+ 		-se ha numero atomico troppo basso non viene scisso ma termina e aumenta le scorie di 1 della struct contenuta in memoria condivisa, e infine ripulisce ogni messaggio di 
+ 		scissione che l'attivatore potrebbe aver inviato ad esso mentre eseguiva le ultime operazioni
+ 		-altrimenti genera un nuovo numero casuale per il nuovo atomo figlio e lo invia alla coda utilizzata per inviare i numeri atomici, poi sottrae questo numero generato al
+ 		proprio numero atomico, aumenta il numero di scissioni e si rimette in attesa di una nuova scissione
+ 		 
+ 	Inibitore:
+ 		L'inibitore:
+ 		-imposta SIGUSR1 per poter ripristinare i parametri di scissione e assorbimento e fermarsi, può essere fermato inviando SIGINT al master che invierà SIGUSR1 al inibitore
+ 		-calcola due valori di offset basandosi sulle costanti definite nel file common_file.h e usa questi offset per imporre un limite iniziale alle scissioni e alla produzione 
+ 		di energia, questi due offset dipendono da due costanti inserite nel file common_file.h
+ 		-fa attendere il padre con un semaforo prima di tutto per poter impostare degli offset iniziali 
+ 		-costantemente, ricalcola il livello di energia raggiunto e imposta un limite all'energia che può produrre una scissione agendo su una variabile presente nella memoria
+ 		condivisa e utilizzata dal atomo prima del calcolo del energia liberata. 
+ 		-ricalcola anche il livello di atomi in attesa, per trovare questa percentuale legge il numero di processi attaccati al segmento di memoria condivisa e lo confronta con un
+ 		limite teorico imposto dal programmatore, questa probabilità verrà sempre usata dal atomo per decidere se effettuare la scissione oppure terminare come scoria
+ 		-i due offset calcolati inizialmente saranno usati sempre dal inibitore per avere un margine di sicurezza nel calcolo del livello di energia raggiunto e per il 
+ 		calcolo della percentuale di processi dormienti 
+ 		
+ 	common_file.h contiene tutte le chiavi per la creazione e lettura degli id degli IPC, contiene inoltre le struct dei messaggi inviati nelle code di messaggio e infine alcune macro 
+ 		      parametriche per una lettura semplificata del codice in generale.
+ 		      
+ 				
+ 
+		 
